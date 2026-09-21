@@ -1,28 +1,109 @@
 # GPT Selective Chat Delete
 
-A local, open-source utility for scanning ChatGPT conversation history and previewing which conversations match a user-maintained keep list.
+GPT Selective Chat Delete is a local desktop-style tool for reviewing a ChatGPT conversation history and building a reliable list of conversations to keep.
+
+It uses Playwright to open ChatGPT in a dedicated Google Chrome profile. You log in yourself, the app scans the conversation sidebar, and a local dashboard lets you search the results and tick the conversations you want to protect.
 
 ## Current status
 
-**Scanning is always read-only. Delete mode is temporarily disabled while reliable completion verification is being repaired for ChatGPT's current UI.**
+The current release supports:
 
-The tool opens ChatGPT in a persistent Playwright Chromium profile, lets you log in manually, scans conversation links in the sidebar, classifies each conversation as `KEEP` or `DELETE_CANDIDATE`, and writes local JSON and text reports. A delete candidate is only a preview label; no modification action exists in V0.1.
+- Manual ChatGPT login in a local Chrome profile
+- Scanning lazy-loaded conversation history
+- Conversation ID, title, and URL collection
+- Duplicate removal using conversation IDs or URLs
+- Searchable HTML previews
+- Keep-selection checkboxes
+- ID-based keep-list export
+- JSON and text reports
+
+**Permanent deletion is temporarily disabled.** ChatGPT's current interface did not provide reliable completion signals during testing, and rate limiting made bulk results ambiguous. The app will not perform deletion until each action can be verified safely. Labels such as `DELETE_CANDIDATE` are preview classifications only.
+
+## Safety model
+
+- Scanning does not modify ChatGPT data.
+- The app never asks for your ChatGPT or Google password.
+- Login happens directly in the browser.
+- Credentials and session cookies remain in `data/browser-profile/` on your computer.
+- Reports remain local and may contain conversation titles, IDs, and URLs.
+- The browser profile and generated reports are ignored by Git.
+- Delete mode is disabled in both the dashboard and command-line entry point.
 
 ## Requirements
 
 - Node.js 18 or newer
-- Chromium installed through Playwright
+- Google Chrome installed locally
+- Playwright and its Chromium support files
 
-## Setup
+## Installation
 
 ```sh
 npm install
 npx playwright install chromium
 ```
 
-## Configure the keep list
+## First-time login
 
-Edit `config/keep-list.json`:
+Google may reject authentication inside a browser controlled by automation. The login helper opens ordinary Chrome, without Playwright control, using the app's dedicated profile:
+
+```sh
+npm run login
+```
+
+In the Chrome window that opens:
+
+1. Visit or remain on ChatGPT.
+2. Log in normally.
+3. Confirm that your conversation sidebar appears.
+4. Close every Chrome window using this dedicated profile.
+
+The saved session will be reused by later scans. Do not copy or commit `data/browser-profile/` because it contains local session data.
+
+## Recommended app flow
+
+Start the integrated dashboard:
+
+```sh
+npm run app
+```
+
+The app opens two tabs in its dedicated Chrome session:
+
+1. **ChatGPT tab** - confirms the account is logged in and gives the scanner access to the visible conversation history.
+2. **Chat Cleanup dashboard** - controls scanning and displays the results.
+
+In the dashboard:
+
+1. Click **Open ChatGPT tab** if you need to confirm the session.
+2. Return to the dashboard.
+3. Click **Scan conversations**.
+4. Wait while the app scrolls through lazy-loaded history.
+5. Search or filter the resulting conversation table.
+6. Tick every conversation you want to keep.
+7. Click **Export keep-list.json**.
+8. Replace `config/keep-list.json` with the downloaded file if you want those selections to become the default for future scans.
+
+The dashboard's delete control is visibly disabled in the current release.
+
+## Read-only terminal scan
+
+For a scan without the integrated dashboard, run:
+
+```sh
+npm run scan
+```
+
+After Chrome opens, confirm that ChatGPT is logged in and press Enter in the terminal. The app scans the sidebar and creates:
+
+- `reports/latest-preview.html` - searchable visual report
+- `reports/latest-preview.json` - structured scan data
+- `reports/latest-preview.txt` - plain-text summary
+
+The HTML report opens automatically in your default browser.
+
+## Keep-list configuration
+
+The keep list is stored in `config/keep-list.json`:
 
 ```json
 {
@@ -32,69 +113,96 @@ Edit `config/keep-list.json`:
 }
 ```
 
-Matching is case-insensitive and ignores repeated or surrounding title whitespace. Conversation IDs have first priority, followed by exact titles and then title prefixes. Titles are not used to identify unique conversations because different conversations can share a title.
+Matching priority is:
 
-## Run
+1. `conversationIds`
+2. `exactTitles`
+3. `titlePrefixes`
 
-If you use **Continue with Google**, first establish the session in ordinary Chrome, outside Playwright:
+Title matching is case-insensitive, trims surrounding whitespace, and collapses repeated spaces. Conversation IDs are strongly preferred because titles can be duplicated or renamed.
 
-```sh
-npm run login
-```
+Every scanned conversation is classified as either:
 
-Log into ChatGPT in the Chrome window that opens, then close every window using that profile. Google may reject OAuth sign-in in browsers controlled by automation; this command opens Chrome without Playwright control and stores the resulting session only in `data/browser-profile/`.
+- `KEEP`
+- `DELETE_CANDIDATE`
 
-Then start the integrated dashboard:
+`DELETE_CANDIDATE` means only that the conversation did not match the keep list. It does not cause deletion.
 
-```sh
-npm run app
-```
+## Commands
 
-The dashboard guides you through scanning, selecting conversations to keep, exporting the keep list, and—only when explicitly enabled—permanent deletion with an exact confirmation phrase.
+| Command | Purpose |
+| --- | --- |
+| `npm run login` | Open ordinary Chrome with the dedicated local profile for manual login |
+| `npm run app` | Open the integrated scanning and keep-selection dashboard |
+| `npm run scan` | Run the read-only terminal scanner and generate reports |
+| `npm test` | Run unit tests |
+| `npm run check` | Run JavaScript syntax checks |
+| `npm run delete` | Currently refuses to run because deletion is disabled |
 
-For a read-only terminal scan instead:
+## Local files and privacy
 
-```sh
-npm run scan
-```
+The following paths are intentionally excluded from Git:
 
-ChatGPT opens in Google Chrome under Playwright control. If needed, complete login first with `npm run login`; then return to the scanner terminal and press Enter. The scanner scrolls the conversation history and creates:
+- `node_modules/`
+- `data/browser-profile/`
+- `reports/*.json`
+- `reports/*.txt`
+- `reports/*.html`
+- `.env`
+- `*.log`
 
-- `reports/latest-preview.json`
-- `reports/latest-preview.txt`
-- `reports/latest-preview.html` (opens automatically with search and filters)
+Treat the browser profile and reports as private. Reports can reveal conversation titles and direct ChatGPT conversation URLs.
 
-In the HTML preview, tick every conversation you want to keep and choose **Export keep-list.json**. Replace `config/keep-list.json` with the downloaded file before the next scan. The exported configuration uses conversation IDs rather than titles, so duplicate or renamed conversations remain unambiguous.
+## Testing
 
-Run the unit tests and syntax checks with:
+Run:
 
 ```sh
 npm test
 npm run check
 ```
 
-## Privacy and safety
+Classifier tests cover exact-title matching, case-insensitive matching, whitespace normalization, prefix matching, duplicate titles, conversation-ID matching, and nonmatching conversations. Reporter tests cover counts, Unicode handling, HTML escaping, and dashboard controls.
 
-- The tool never asks for or stores a ChatGPT username or password.
-- Login credentials and session data remain in the local Playwright browser profile.
-- Reports remain local and may contain conversation titles and URLs.
-- The browser profile and generated reports are excluded from Git and should never be committed.
-- Normal scans and HTML reports are always read-only. Only the separate `npm run delete` command can modify chats, and only after its exact typed confirmation.
+## Project structure
 
-## Optional permanent deletion
-
-First run `npm run scan` and verify the HTML preview and `config/keep-list.json`. Then run:
-
-```sh
-npm run delete
+```text
+config/
+  keep-list.json
+reports/
+  .gitkeep
+src/
+  actions/
+  browser.js
+  classifier.js
+  config.js
+  manual-login.js
+  reporter.js
+  scanner.js
+  selectors.js
+  utils.js
+tests/
+app.js
+index.js
 ```
 
-The delete command rescans ChatGPT, protects every configured keep ID, shows the exact deletion count, and requires an exact typed confirmation before clicking anything destructive. It stops on the first UI mismatch and writes `reports/latest-deletion-receipt.json` containing every successful or failed action.
+Scanning, classification, reporting, and browser management are separated so the interface can evolve without coupling keep-list logic to ChatGPT's DOM.
 
-Deletion is intentionally paced and pauses after each small batch to reduce ChatGPT rate limiting. If ChatGPT displays a temporary-limit notice, the run stops; wait several minutes, then scan again to continue with the remaining chats.
+## ChatGPT interface changes
 
-Deletion is permanent and cannot be undone. Never enable delete mode until the preview is correct.
+ChatGPT's interface and rate limits can change without notice. DOM assumptions are centralized in `src/selectors.js`. The scanner uses bounded scrolling, timeouts, and duplicate detection, and it stops with an understandable error when the sidebar cannot be identified reliably.
 
-## Selector maintenance
+If a scan returns unexpectedly few conversations, stop and try again later. Do not treat a partial scan as evidence that conversations were deleted; ChatGPT may be rate-limiting or temporarily failing to load older history.
 
-ChatGPT's interface can change. DOM assumptions are centralized in `src/selectors.js`. If scanning reports that it cannot locate the sidebar, verify those selectors against the current ChatGPT interface before relying on a preview.
+## Future deletion support
+
+Deletion may be re-enabled only after the tool can:
+
+- Verify the exact conversation ID immediately before acting
+- Confirm that ChatGPT accepted the action
+- Verify that the conversation is absent afterward
+- Detect and handle rate limiting without reporting false success
+- Preserve an accurate local receipt
+- Require explicit confirmation for the exact candidate count
+
+Until those conditions are met, this project remains a scan, classify, preview, and keep-list tool.
