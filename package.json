@@ -1,0 +1,27 @@
+{
+  "name": "gpt-select-delete-feature",
+  "version": "1.0.0",
+  "description": "Read-only ChatGPT conversation scanner and cleanup preview tool",
+  "main": "index.js",
+  "scripts": {
+    "login": "node src/manual-login.js",
+    "scan": "node index.js",
+    "delete": "node delete.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check index.js && node --check delete.js && node --check src/actions/delete.js && node --check src/browser.js && node --check src/manual-login.js && node --check src/scanner.js && node --check src/classifier.js && node --check src/config.js && node --check src/reporter.js && node --check src/selectors.js && node --check src/utils.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SawaabA/GPT-Selective-Chat-Delete.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SawaabA/GPT-Selective-Chat-Delete/issues"
+  },
+  "homepage": "https://github.com/SawaabA/GPT-Selective-Chat-Delete#readme",
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}

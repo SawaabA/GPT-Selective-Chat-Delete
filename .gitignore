@@ -179,3 +179,13 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Node.js and local ChatGPT scanner data
+node_modules/
+data/browser-profile/
+reports/*.json
+reports/*.txt
+reports/*.html
+reports/*deletion-receipt*.json
+.env
+*.log
