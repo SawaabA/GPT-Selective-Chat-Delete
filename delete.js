@@ -6,6 +6,8 @@ const { scanConversations } = require('./src/scanner');
 const { prompt, waitForEnter } = require('./src/utils');
 
 async function main() {
+  throw new Error('Delete mode is temporarily disabled because ChatGPT deletion could not be verified reliably. Use npm run app for read-only scanning.');
+  /* istanbul ignore next -- retained implementation is unreachable until verification is repaired. */
   const keepList = await loadKeepList();
   let context;
   const receipt = [];
@@ -44,7 +46,7 @@ async function main() {
         receipt.push({ ...conversation, status: 'DELETED', deletedAt: new Date().toISOString() });
         console.log('deleted');
       } catch (error) {
-        receipt.push({ ...conversation, status: 'FAILED', error: error.message });
+        receipt.push({ ...conversation, status: error.code === 'CHATGPT_RATE_LIMIT' ? 'RATE_LIMITED' : 'FAILED', error: error.message });
         console.log('stopped');
         throw error;
       }

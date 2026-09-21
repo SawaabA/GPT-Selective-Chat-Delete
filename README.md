@@ -4,7 +4,7 @@ A local, open-source utility for scanning ChatGPT conversation history and previ
 
 ## Current status
 
-**Scanning is always read-only. Permanent deletion is available only through a separate, explicitly confirmed delete mode.**
+**Scanning is always read-only. Delete mode is temporarily disabled while reliable completion verification is being repaired for ChatGPT's current UI.**
 
 The tool opens ChatGPT in a persistent Playwright Chromium profile, lets you log in manually, scans conversation links in the sidebar, classifies each conversation as `KEEP` or `DELETE_CANDIDATE`, and writes local JSON and text reports. A delete candidate is only a preview label; no modification action exists in V0.1.
 
@@ -44,7 +44,15 @@ npm run login
 
 Log into ChatGPT in the Chrome window that opens, then close every window using that profile. Google may reject OAuth sign-in in browsers controlled by automation; this command opens Chrome without Playwright control and stores the resulting session only in `data/browser-profile/`.
 
-Then start the scanner:
+Then start the integrated dashboard:
+
+```sh
+npm run app
+```
+
+The dashboard guides you through scanning, selecting conversations to keep, exporting the keep list, and—only when explicitly enabled—permanent deletion with an exact confirmation phrase.
+
+For a read-only terminal scan instead:
 
 ```sh
 npm run scan
@@ -82,6 +90,8 @@ npm run delete
 ```
 
 The delete command rescans ChatGPT, protects every configured keep ID, shows the exact deletion count, and requires an exact typed confirmation before clicking anything destructive. It stops on the first UI mismatch and writes `reports/latest-deletion-receipt.json` containing every successful or failed action.
+
+Deletion is intentionally paced and pauses after each small batch to reduce ChatGPT rate limiting. If ChatGPT displays a temporary-limit notice, the run stops; wait several minutes, then scan again to continue with the remaining chats.
 
 Deletion is permanent and cannot be undone. Never enable delete mode until the preview is correct.
 

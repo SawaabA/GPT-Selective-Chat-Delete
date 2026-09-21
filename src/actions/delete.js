@@ -2,41 +2,73 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { delay } = require('../utils');
 
-function escapeAttribute(value) {
-  return String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+async function clickVerifiedElement(locator, description) {
+  await locator.waitFor({ state: 'visible' });
+  await locator.evaluate((element, label) => {
+    const disabled = element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true';
+    if (disabled) throw new Error(`${label} is disabled.`);
+    element.click();
+  }, description);
+}
+
+async function clickVisibleMenuItem(page, label) {
+  const clicked = await page.evaluate((itemLabel) => {
+    const isVisible = (element) => {
+      const style = getComputedStyle(element);
+      const box = element.getBoundingClientRect();
+      return style.visibility !== 'hidden' && style.display !== 'none' && box.width > 0 && box.height > 0;
+    };
+    const openMenus = [...document.querySelectorAll('[role="menu"]')].filter(isVisible);
+    const menu = openMenus.at(-1);
+    if (!menu) return { ok: false, reason: 'No visible conversation menu was found.' };
+    const item = [...menu.querySelectorAll('[role="menuitem"]')]
+      .find((element) => element.textContent.trim().toLocaleLowerCase() === itemLabel.toLocaleLowerCase());
+    if (!item) return { ok: false, reason: `The ${itemLabel} menu item was not found in the open conversation menu.` };
+    if (item.getAttribute('aria-disabled') === 'true') return { ok: false, reason: `The ${itemLabel} menu item is disabled.` };
+    item.click();
+    return { ok: true };
+  }, label);
+  if (!clicked.ok) throw new Error(clicked.reason);
 }
 
 async function deleteConversation(page, conversation, options = {}) {
-  const { actionDelayMs = 900 } = options;
+  const { actionDelayMs = 6_000 } = options;
   if (!conversation.id) throw new Error(`Cannot delete "${conversation.title}" because it has no conversation ID.`);
 
-  const id = escapeAttribute(conversation.id);
-  const trigger = page.locator(`[data-conversation-options-trigger="${id}"]`).first();
+  const conversationUrl = `https://chatgpt.com/c/${encodeURIComponent(conversation.id)}`;
+  await page.goto(conversationUrl, { waitUntil: 'domcontentloaded' });
+  await delay(500);
+  const currentPath = new URL(page.url()).pathname;
+  if (currentPath !== `/c/${conversation.id}`) {
+    throw new Error(`ChatGPT did not open the exact conversation ID ${conversation.id}. No deletion was attempted.`);
+  }
+
+  const trigger = page.getByTestId('conversation-options-button');
   if (!await trigger.isVisible().catch(() => false)) {
-    throw new Error(`Could not find the options button for "${conversation.title}" (${conversation.id}). No deletion was attempted for this chat.`);
+    throw new Error(`Could not find the active conversation options for "${conversation.title}" (${conversation.id}). No deletion was attempted.`);
   }
 
-  await trigger.click();
-  const deleteMenuItem = page.getByRole('menuitem', { name: /^Delete$/i }).last();
-  if (!await deleteMenuItem.isVisible().catch(() => false)) {
-    await page.keyboard.press('Escape').catch(() => {});
-    throw new Error(`The Delete menu item was not found for "${conversation.title}". The ChatGPT layout may have changed.`);
-  }
-  await deleteMenuItem.click();
+  await clickVerifiedElement(trigger, `The options button for "${conversation.title}"`);
+  await clickVisibleMenuItem(page, 'Delete');
+  await delay(400);
 
-  const dialog = page.getByRole('dialog').last();
-  if (!await dialog.isVisible().catch(() => false)) {
-    throw new Error(`ChatGPT did not show a confirmation dialog for "${conversation.title}". Deletion stopped.`);
+  // ChatGPT currently deletes immediately from this menu, but some layouts
+  // still show a confirmation surface. Support both without assuming one.
+  const confirmationSurface = page.locator('[role="dialog"], [role="alertdialog"]').last();
+  if (await confirmationSurface.isVisible().catch(() => false)) {
+    const confirmationText = await confirmationSurface.textContent().catch(() => '');
+    if (/too many requests|temporarily limited|requests too quickly/i.test(confirmationText)) {
+      const error = new Error('ChatGPT temporarily rate-limited conversation access. Wait several minutes before starting a new deletion run.');
+      error.code = 'CHATGPT_RATE_LIMIT';
+      throw error;
+    }
+    const confirmButton = confirmationSurface.getByRole('button', { name: /^Delete$/i }).last();
+    if (!await confirmButton.isVisible().catch(() => false)) {
+      throw new Error(`A confirmation appeared without an exact Delete button for "${conversation.title}". Deletion stopped.`);
+    }
+    await clickVerifiedElement(confirmButton, `The final Delete button for "${conversation.title}"`);
   }
-  const confirmButton = dialog.getByRole('button', { name: /^Delete$/i }).last();
-  if (!await confirmButton.isVisible().catch(() => false)) {
-    throw new Error(`The final Delete confirmation was not found for "${conversation.title}". Deletion stopped.`);
-  }
-
-  await confirmButton.click();
   await delay(actionDelayMs);
-  const stillPresent = await page.locator(`[data-conversation-options-trigger="${id}"]`).count();
-  if (stillPresent) throw new Error(`ChatGPT did not remove "${conversation.title}" after confirmation. Deletion stopped to avoid an unreliable run.`);
 }
 
 async function saveDeletionReceipt(entries, reportsDirectory = path.join(__dirname, '..', '..', 'reports')) {
@@ -51,4 +83,4 @@ async function saveDeletionReceipt(entries, reportsDirectory = path.join(__dirna
   return receiptPath;
 }
 
-module.exports = { deleteConversation, saveDeletionReceipt };
+module.exports = { clickVerifiedElement, clickVisibleMenuItem, deleteConversation, saveDeletionReceipt };

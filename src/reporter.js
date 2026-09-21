@@ -110,8 +110,18 @@ function formatHtmlReport(report) {
 </head>
 <body>
 <main>
-  <header><div><h1>Chat Cleanup Preview</h1><p class="meta">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</p><label class="mode-switch"><input id="delete-mode" type="checkbox"> Show permanent deletion mode</label></div><div class="safe">Read-only &middot; no chats modified</div></header>
-  <section class="danger" id="delete-help" hidden><strong>Permanent deletion mode</strong><br>This report never deletes chats itself. After verifying and exporting your keep list, close the scanner browser and run <code>npm run delete</code>. The command rescans and requires an exact confirmation phrase.</section>
+  <header><div><h1>Chat Cleanup Preview</h1><p class="meta">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</p><label class="mode-switch"><input id="delete-mode" type="checkbox" disabled> Delete mode temporarily disabled while UI verification is repaired</label></div><div class="safe">Read-only &middot; no chats modified</div></header>
+  <section class="danger" id="delete-help" hidden>
+    <strong>Permanent deletion mode</strong>
+    <p id="delete-description">Unchecked conversations will be permanently deleted. This cannot be undone.</p>
+    <div id="integrated-delete" hidden>
+      <p><strong id="delete-count"></strong></p>
+      <label>Type <code id="confirmation-phrase"></code> to confirm:<br><input id="delete-confirmation" type="text" autocomplete="off" spellcheck="false"></label>
+      <button class="primary" id="delete-now" disabled>Permanently delete unchecked chats</button>
+      <p id="delete-progress" class="meta" aria-live="polite"></p>
+    </div>
+    <p id="terminal-delete">This saved report cannot control ChatGPT. To use the integrated dashboard, run <code>npm run app</code>. The separate <code>npm run delete</code> command is also available.</p>
+  </section>
   <section class="stats">
     <div class="stat"><strong>${report.total}</strong><span>Total conversations</span></div>
     <div class="stat"><strong>${report.keepCount}</strong><span>Keep</span></div>
@@ -138,6 +148,19 @@ function formatHtmlReport(report) {
   const selectedCount = document.querySelector('#selected-count');
   const checkboxes = [...document.querySelectorAll('.keep-checkbox')];
   let filter = 'ALL';
+  const deleteToggle = document.querySelector('#delete-mode');
+  const confirmation = document.querySelector('#delete-confirmation');
+  const deleteButton = document.querySelector('#delete-now');
+  const progress = document.querySelector('#delete-progress');
+  function selectedIds() { return checkboxes.filter(item => item.checked && item.dataset.id).map(item => item.dataset.id); }
+  function candidateCount() { return checkboxes.filter(item => !item.checked && item.dataset.id).length; }
+  function refreshDeleteControls() {
+    const count = candidateCount();
+    const phrase = 'DELETE ' + count + ' CHATS';
+    document.querySelector('#delete-count').textContent = count + ' unchecked chats will be permanently deleted.';
+    document.querySelector('#confirmation-phrase').textContent = phrase;
+    deleteButton.disabled = !deleteToggle.checked || confirmation.value.trim() !== phrase || count === 0;
+  }
   function update() {
     const query = search.value.trim().toLocaleLowerCase();
     let visible = 0;
@@ -150,6 +173,7 @@ function formatHtmlReport(report) {
     }
     count.textContent = 'Showing ' + visible + ' of ' + rows.length + ' conversations. This report is stored locally on your computer.';
     selectedCount.textContent = checkboxes.filter(item => item.checked).length + ' selected to keep';
+    refreshDeleteControls();
   }
   search.addEventListener('input', update);
   buttons.forEach(button => button.addEventListener('click', () => {
@@ -158,8 +182,34 @@ function formatHtmlReport(report) {
     update();
   }));
   checkboxes.forEach(checkbox => checkbox.addEventListener('change', update));
-  document.querySelector('#delete-mode').addEventListener('change', event => {
+  deleteToggle.addEventListener('change', event => {
     document.querySelector('#delete-help').hidden = !event.target.checked;
+    refreshDeleteControls();
+  });
+  confirmation.addEventListener('input', refreshDeleteControls);
+  if (typeof window.chatCleanupDelete === 'function') {
+    document.querySelector('#integrated-delete').hidden = false;
+    document.querySelector('#terminal-delete').hidden = true;
+  }
+  window.updateDeletionProgress = detail => {
+    progress.textContent = detail.message;
+  };
+  deleteButton.addEventListener('click', async () => {
+    if (typeof window.chatCleanupDelete !== 'function') return;
+    const count = candidateCount();
+    const phrase = confirmation.value.trim();
+    deleteButton.disabled = true;
+    checkboxes.forEach(item => { item.disabled = true; });
+    progress.textContent = 'Rescanning before deletion...';
+    try {
+      const result = await window.chatCleanupDelete({ keepIds: selectedIds(), candidateCount: count, confirmation: phrase });
+      progress.textContent = result.message;
+      if (result.deletedCount === count) deleteToggle.disabled = true;
+    } catch (error) {
+      progress.textContent = 'Deletion stopped: ' + error.message;
+      checkboxes.forEach(item => { item.disabled = !item.dataset.id; });
+      refreshDeleteControls();
+    }
   });
   document.querySelector('#export').addEventListener('click', () => {
     const conversationIds = checkboxes.filter(item => item.checked && item.dataset.id).map(item => item.dataset.id);
@@ -174,6 +224,15 @@ function formatHtmlReport(report) {
 </script>
 </body>
 </html>`;
+}
+
+function formatAppLanding() {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chat Cleanup</title><style>
+  body{margin:0;background:#f4f7f5;color:#18201d;font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}main{width:min(680px,calc(100% - 32px));margin:10vh auto;background:#fff;border:1px solid #dfe5e2;border-radius:22px;padding:32px;box-shadow:0 12px 40px rgba(28,45,38,.08)}h1{font-size:34px;letter-spacing:-.03em;margin:0 0 8px}p{color:#66716c}.steps{margin:28px 0;padding:0;list-style:none;counter-reset:step}.steps li{counter-increment:step;display:flex;gap:14px;margin:18px 0}.steps li:before{content:counter(step);display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:#e7f7ef;color:#147d55;font-weight:800}button{border:0;border-radius:11px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}#chat{background:#eef2f0;color:#18201d;margin-right:8px}#scan{background:#147d55;color:#fff}#scan:disabled{opacity:.55;cursor:wait}#status{min-height:24px;margin-top:18px;color:#147d55;font-weight:650}.safe{font-size:13px;color:#66716c;border-top:1px solid #dfe5e2;padding-top:20px;margin-top:28px}
+  </style></head><body><main><h1>Chat Cleanup</h1><p>Scan, choose what to keep, and optionally delete everything else from one dashboard.</p><ol class="steps"><li>Use the ChatGPT tab to log in normally.</li><li>Come back here and scan your conversation history.</li><li>Tick what you want to keep. Delete mode stays off until you enable it.</li></ol><button id="chat">Open ChatGPT tab</button><button id="scan">Scan conversations</button><div id="status" aria-live="polite"></div><div class="safe">Scanning is read-only. Permanent deletion requires a separate toggle and exact confirmation after the scan.</div></main><script>
+  document.querySelector('#chat').addEventListener('click',()=>window.chatCleanupShowChat());
+  document.querySelector('#scan').addEventListener('click',async()=>{const button=document.querySelector('#scan');const status=document.querySelector('#status');button.disabled=true;status.textContent='Scanning conversation history...';try{const html=await window.chatCleanupScan();document.open();document.write(html);document.close()}catch(error){status.textContent='Scan failed: '+error.message;button.disabled=false}});
+  </script></body></html>`;
 }
 
 async function saveReport(report, reportsDirectory = path.join(__dirname, '..', 'reports')) {
@@ -192,4 +251,4 @@ async function saveReport(report, reportsDirectory = path.join(__dirname, '..', 
   return paths;
 }
 
-module.exports = { createReport, escapeHtml, formatHtmlReport, formatPreview, saveReport };
+module.exports = { createReport, escapeHtml, formatAppLanding, formatHtmlReport, formatPreview, saveReport };

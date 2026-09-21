@@ -26,4 +26,7 @@ test('HTML report preserves Unicode and escapes user-controlled titles', () => {
   assert.match(html, /class="keep-checkbox"/);
   assert.match(html, /Export keep-list\.json/);
   assert.match(html, /conversationIds/);
+  assert.match(html, /Delete mode temporarily disabled/);
+  assert.match(html, /Permanently delete unchecked chats/);
+  assert.match(html, /chatCleanupDelete/);
 });
