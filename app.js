@@ -24,8 +24,6 @@ async function main() {
     return formatHtmlReport(latestReport);
   });
   await dashboard.exposeBinding('chatCleanupDelete', async (_source, request) => {
-    throw new Error('Delete mode is temporarily disabled because ChatGPT did not provide reliable completion verification. Use scan and keep selection only.');
-    /* istanbul ignore next -- retained implementation is unreachable until verification is repaired. */
     if (deleting) throw new Error('A deletion run is already in progress.');
     if (!latestReport) throw new Error('Run a scan first.');
     if (!request || !Array.isArray(request.keepIds)) throw new Error('Invalid keep selection.');

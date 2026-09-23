@@ -110,7 +110,7 @@ function formatHtmlReport(report) {
 </head>
 <body>
 <main>
-  <header><div><h1>Chat Cleanup Preview</h1><p class="meta">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</p><label class="mode-switch"><input id="delete-mode" type="checkbox" disabled> Delete mode temporarily disabled while UI verification is repaired</label></div><div class="safe">Read-only &middot; no chats modified</div></header>
+  <header><div><h1>Chat Cleanup Preview</h1><p class="meta">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</p><label class="mode-switch"><input id="delete-mode" type="checkbox"> Enable experimental permanent deletion</label></div><div class="safe">Scan complete &middot; no chats modified yet</div></header>
   <section class="danger" id="delete-help" hidden>
     <strong>Permanent deletion mode</strong>
     <p id="delete-description">Unchecked conversations will be permanently deleted. This cannot be undone.</p>
