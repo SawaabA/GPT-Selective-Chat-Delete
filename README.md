@@ -16,9 +16,9 @@ The current release supports:
 - Keep-selection checkboxes
 - ID-based keep-list export
 - JSON and text reports
-- Experimental, explicitly confirmed permanent deletion
+- Guarded, explicitly confirmed permanent deletion with post-action verification
 
-**Permanent deletion is experimental and disabled by default in the dashboard.** ChatGPT's interface and rate limits can make bulk results ambiguous. Review the fresh scan carefully, preserve every required conversation, and understand that deletion cannot be undone before enabling it.
+**Permanent deletion is disabled by default in the dashboard.** Before acting, the app requires the fresh scan to contain exactly the same conversation IDs as the reviewed scan. It then verifies each deletion before continuing. Review every selection and understand that deletion cannot be undone before enabling it.
 
 ## Safety model
 
@@ -29,7 +29,7 @@ The current release supports:
 - Reports remain local and may contain conversation titles, IDs, and URLs.
 - The browser profile and generated reports are ignored by Git.
 - Delete mode requires a fresh scan, an explicit toggle, and an exact confirmation phrase containing the candidate count.
-- Deletion is paced and stops on UI mismatches or rate-limit notices.
+- Deletion is paced, verifies each result, and stops on changed history, UI mismatches, or rate-limit notices.
 
 ## Requirements
 
@@ -139,7 +139,7 @@ Every scanned conversation is classified as either:
 | `npm run scan` | Run the read-only terminal scanner and generate reports |
 | `npm test` | Run unit tests |
 | `npm run check` | Run JavaScript syntax checks |
-| `npm run delete` | Run the experimental deletion flow with fresh scanning and typed confirmation |
+| `npm run delete` | Run the guarded deletion flow with fresh scanning and typed confirmation |
 
 ## Local files and privacy
 
@@ -196,15 +196,17 @@ ChatGPT's interface and rate limits can change without notice. DOM assumptions a
 
 If a scan returns unexpectedly few conversations, stop and try again later. Do not treat a partial scan as evidence that conversations were deleted; ChatGPT may be rate-limiting or temporarily failing to load older history.
 
-## Experimental deletion limitations
+## Deletion safeguards and limitations
 
 Deletion currently attempts to:
 
 - Verify the exact conversation ID immediately before acting
+- Require the reviewed and fresh scans to contain the exact same ID set
+- Verify that ChatGPT navigates away from or reports the deleted conversation unavailable
 - Stop when ChatGPT's expected controls are missing
 - Detect rate-limit notices
 - Pace requests and pause between small batches
 - Preserve a local best-effort receipt
 - Require explicit confirmation for the exact candidate count
 
-ChatGPT does not always expose a reliable completion signal after a menu action. A receipt therefore records what the automation attempted and observed, but it should not be treated as proof that every listed chat disappeared. Rescan after each run and compare the live history before continuing.
+ChatGPT remains an external interface that can change without notice. The app stops if it cannot verify a deletion, and its receipt distinguishes verified deletions from failures. Run a new scan after each deletion batch to refresh the dashboard and confirm the resulting live history.

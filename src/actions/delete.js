@@ -32,7 +32,7 @@ async function clickVisibleMenuItem(page, label) {
 }
 
 async function deleteConversation(page, conversation, options = {}) {
-  const { actionDelayMs = 6_000 } = options;
+  const { actionDelayMs = 2_000, verificationTimeoutMs = 15_000 } = options;
   if (!conversation.id) throw new Error(`Cannot delete "${conversation.title}" because it has no conversation ID.`);
 
   const conversationUrl = `https://chatgpt.com/c/${encodeURIComponent(conversation.id)}`;
@@ -68,7 +68,21 @@ async function deleteConversation(page, conversation, options = {}) {
     }
     await clickVerifiedElement(confirmButton, `The final Delete button for "${conversation.title}"`);
   }
+
+  const expectedPath = `/c/${conversation.id}`;
+  try {
+    await page.waitForFunction((path) => window.location.pathname !== path, expectedPath, { timeout: verificationTimeoutMs });
+  } catch {
+    await page.goto(conversationUrl, { waitUntil: 'domcontentloaded' });
+    await delay(750);
+    const reopenedPath = new URL(page.url()).pathname;
+    const unavailable = await page.locator('text=/conversation (not found|does not exist|unavailable)|unable to load conversation/i').first().isVisible().catch(() => false);
+    if (reopenedPath === expectedPath && !unavailable) {
+      throw new Error(`Deletion of "${conversation.title}" could not be verified. The run stopped to prevent unsafe continuation.`);
+    }
+  }
   await delay(actionDelayMs);
+  return { verified: true };
 }
 
 async function saveDeletionReceipt(entries, reportsDirectory = path.join(__dirname, '..', '..', 'reports')) {

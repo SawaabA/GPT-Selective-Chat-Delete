@@ -83,6 +83,11 @@ async function scanConversations(page, options) {
 
   const conversations = new Map();
   const scrollContainer = await findScrollContainer(page);
+  await scrollContainer.evaluate((element) => {
+    element.scrollTop = 0;
+    element.dispatchEvent(new Event('scroll', { bubbles: true }));
+  });
+  await delay(options.scrollDelayMs);
   const startedAt = Date.now();
   let stableAttempts = 0;
   let previousCount = 0;
@@ -105,13 +110,15 @@ async function scanConversations(page, options) {
 
     const state = await scrollContainer.evaluate((element) => {
       const before = element.scrollTop;
-      element.scrollTop = element.scrollHeight;
+      const step = Math.max(240, Math.floor(element.clientHeight * 0.8));
+      element.scrollTop = Math.min(element.scrollTop + step, element.scrollHeight);
       element.dispatchEvent(new Event('scroll', { bubbles: true }));
-      return { before, after: element.scrollTop, height: element.scrollHeight };
+      return { before, after: element.scrollTop, height: element.scrollHeight, clientHeight: element.clientHeight };
     });
     await delay(options.scrollDelayMs);
+    await collectVisibleConversations(page, conversations);
     const afterState = await scrollContainer.evaluate((element) => ({ top: element.scrollTop, height: element.scrollHeight }));
-    const atEnd = afterState.top + 2 >= afterState.height - await scrollContainer.evaluate((element) => element.clientHeight);
+    const atEnd = afterState.top + state.clientHeight + 2 >= afterState.height;
     const didNotMove = state.before === afterState.top && state.height === afterState.height;
 
     if (stableAttempts >= options.stableScrollAttempts && (atEnd || didNotMove)) {

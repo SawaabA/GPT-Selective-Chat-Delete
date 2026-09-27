@@ -2,6 +2,7 @@ const { launchBrowser } = require('./src/browser');
 const { classifyConversations, ACTIONS } = require('./src/classifier');
 const { DEFAULT_OPTIONS, loadKeepList } = require('./src/config');
 const { deleteConversation, saveDeletionReceipt } = require('./src/actions/delete');
+const { createDeletionPlan } = require('./src/deletion-plan');
 const { scanConversations } = require('./src/scanner');
 const { delay, prompt, waitForEnter } = require('./src/utils');
 
@@ -35,15 +36,20 @@ async function main() {
       return;
     }
 
+    console.log('\nRe-scanning to verify that the conversation list has not changed...');
+    const freshScan = await scanConversations(browser.page, DEFAULT_OPTIONS);
+    const keepIds = keep.map(({ id }) => id).filter(Boolean);
+    const verifiedCandidates = createDeletionPlan(scanned, freshScan, keepIds, candidates.length);
+
     console.log('\nDeletion mode enabled. Do not close the browser.');
-    for (let index = 0; index < candidates.length; index += 1) {
-      const conversation = candidates[index];
-      process.stdout.write(`[${index + 1}/${candidates.length}] ${conversation.title} ... `);
+    for (let index = 0; index < verifiedCandidates.length; index += 1) {
+      const conversation = verifiedCandidates[index];
+      process.stdout.write(`[${index + 1}/${verifiedCandidates.length}] ${conversation.title} ... `);
       try {
         await deleteConversation(browser.page, conversation);
         receipt.push({ ...conversation, status: 'DELETED', deletedAt: new Date().toISOString() });
         console.log('deleted');
-        if ((index + 1) % 5 === 0 && index + 1 < candidates.length) {
+        if ((index + 1) % 5 === 0 && index + 1 < verifiedCandidates.length) {
           console.log('Cooling down for 30 seconds to reduce rate limiting...');
           await delay(30_000);
         }

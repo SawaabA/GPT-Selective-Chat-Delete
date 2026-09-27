@@ -110,7 +110,7 @@ function formatHtmlReport(report) {
 </head>
 <body>
 <main>
-  <header><div><h1>Chat Cleanup Preview</h1><p class="meta">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</p><label class="mode-switch"><input id="delete-mode" type="checkbox"> Enable experimental permanent deletion</label></div><div class="safe">Scan complete &middot; no chats modified yet</div></header>
+  <header><div><h1>Chat Cleanup Preview</h1><p class="meta">Generated ${escapeHtml(new Date(report.generatedAt).toLocaleString())}</p><label class="mode-switch"><input id="delete-mode" type="checkbox"> Enable verified permanent deletion</label></div><div class="safe">Scan complete &middot; no chats modified yet</div></header>
   <section class="danger" id="delete-help" hidden>
     <strong>Permanent deletion mode</strong>
     <p id="delete-description">Unchecked conversations will be permanently deleted. This cannot be undone.</p>
@@ -204,7 +204,11 @@ function formatHtmlReport(report) {
     try {
       const result = await window.chatCleanupDelete({ keepIds: selectedIds(), candidateCount: count, confirmation: phrase });
       progress.textContent = result.message;
-      if (result.deletedCount === count) deleteToggle.disabled = true;
+      if (result.deletedCount === count) {
+        deleteToggle.disabled = true;
+        confirmation.disabled = true;
+        progress.textContent = result.message + ' Run a new scan to refresh this dashboard.';
+      }
     } catch (error) {
       progress.textContent = 'Deletion stopped: ' + error.message;
       checkboxes.forEach(item => { item.disabled = !item.dataset.id; });

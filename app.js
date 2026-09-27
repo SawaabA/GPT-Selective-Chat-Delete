@@ -2,6 +2,7 @@ const { launchBrowser } = require('./src/browser');
 const { ACTIONS, classifyConversations } = require('./src/classifier');
 const { DEFAULT_OPTIONS, loadKeepList } = require('./src/config');
 const { deleteConversation, saveDeletionReceipt } = require('./src/actions/delete');
+const { createDeletionPlan } = require('./src/deletion-plan');
 const { createReport, formatAppLanding, formatHtmlReport, saveReport } = require('./src/reporter');
 const { scanConversations } = require('./src/scanner');
 const { delay } = require('./src/utils');
@@ -27,7 +28,6 @@ async function main() {
     if (deleting) throw new Error('A deletion run is already in progress.');
     if (!latestReport) throw new Error('Run a scan first.');
     if (!request || !Array.isArray(request.keepIds)) throw new Error('Invalid keep selection.');
-    const keepIds = new Set(request.keepIds.map((id) => String(id).toLocaleLowerCase()));
     const expectedCount = Number(request.candidateCount);
     const expectedPhrase = `DELETE ${expectedCount} CHATS`;
     if (request.confirmation !== expectedPhrase) throw new Error('The confirmation phrase does not match.');
@@ -38,10 +38,7 @@ async function main() {
     try {
       await chatPage.bringToFront();
       const freshScan = await scanConversations(chatPage, DEFAULT_OPTIONS);
-      const candidates = freshScan.filter(({ id }) => id && !keepIds.has(id.toLocaleLowerCase()));
-      if (candidates.length !== expectedCount) {
-        throw new Error(`The fresh scan found ${candidates.length} candidates, but the dashboard showed ${expectedCount}. Nothing was deleted; scan again.`);
-      }
+      const candidates = createDeletionPlan(latestReport.conversations, freshScan, request.keepIds, expectedCount);
 
       for (let index = 0; index < candidates.length; index += 1) {
         if (dashboard.isClosed()) throw new Error('The dashboard was closed.');
@@ -64,7 +61,8 @@ async function main() {
       const receiptPath = await saveDeletionReceipt(receipt);
       receiptSaved = true;
       await dashboard.bringToFront();
-      return { deletedCount: receipt.length, message: `Deleted ${receipt.length} chats. Receipt saved to ${receiptPath}` };
+      const deletedCount = receipt.filter(({ status }) => status === 'DELETED').length;
+      return { deletedCount, message: `Verified deletion of ${deletedCount} chats. Receipt saved to ${receiptPath}` };
     } finally {
       if (receipt.length && !receiptSaved) await saveDeletionReceipt(receipt);
       deleting = false;
