@@ -39,4 +39,30 @@ function createDeletionPlan(previousConversations, freshConversations, requested
   return candidates;
 }
 
-module.exports = { createDeletionPlan, idSet, normalizeId, sameIds };
+function createExplicitDeletionPlan(previousConversations, freshConversations, requestedDeleteIds, expectedCount) {
+  if (!Array.isArray(previousConversations) || !Array.isArray(freshConversations)) {
+    throw new Error('Deletion planning requires two complete conversation scans.');
+  }
+  if (!Array.isArray(requestedDeleteIds)) throw new Error('Invalid delete selection.');
+  if (!Number.isSafeInteger(expectedCount) || expectedCount < 1) throw new Error('Select at least one conversation to delete.');
+
+  const previousIds = idSet(previousConversations);
+  const freshIds = idSet(freshConversations);
+  if (previousIds.size !== previousConversations.length || freshIds.size !== freshConversations.length) {
+    throw new Error('At least one conversation has no stable ID. Nothing was deleted.');
+  }
+  if (!sameIds(previousIds, freshIds)) {
+    throw new Error('The conversation list changed after the dashboard scan. Nothing was deleted; review a new scan.');
+  }
+
+  const deleteIds = new Set(requestedDeleteIds.map(normalizeId));
+  if (deleteIds.size !== requestedDeleteIds.length || [...deleteIds].some((id) => !id || !previousIds.has(id))) {
+    throw new Error('The delete selection contains a duplicate or unknown conversation ID. Nothing was deleted.');
+  }
+  if (deleteIds.size !== expectedCount) {
+    throw new Error(`The request selected ${deleteIds.size} conversations, but the dashboard showed ${expectedCount}. Nothing was deleted.`);
+  }
+  return freshConversations.filter(({ id }) => deleteIds.has(normalizeId(id)));
+}
+
+module.exports = { createDeletionPlan, createExplicitDeletionPlan, idSet, normalizeId, sameIds };

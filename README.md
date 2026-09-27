@@ -85,7 +85,7 @@ In the dashboard:
 7. Click **Export keep-list.json**.
 8. Replace `config/keep-list.json` with the downloaded file if you want those selections to become the default for future scans.
 
-The dashboard's delete control starts off. Enabling it reveals the candidate count, permanent-deletion warning, and exact confirmation field.
+Nothing is preselected for deletion. Select conversations explicitly, use **Review deletion** to inspect the exact list, and type the count-specific confirmation phrase. Unselected conversations are never sent to the deletion workflow.
 
 ## Read-only terminal scan
 

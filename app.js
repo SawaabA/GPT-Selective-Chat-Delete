@@ -2,7 +2,7 @@ const { launchBrowser } = require('./src/browser');
 const { ACTIONS, classifyConversations } = require('./src/classifier');
 const { DEFAULT_OPTIONS, loadKeepList } = require('./src/config');
 const { deleteConversation, saveDeletionReceipt } = require('./src/actions/delete');
-const { createDeletionPlan } = require('./src/deletion-plan');
+const { createExplicitDeletionPlan } = require('./src/deletion-plan');
 const { createReport, formatAppLanding, formatHtmlReport, saveReport } = require('./src/reporter');
 const { scanConversations } = require('./src/scanner');
 const { delay } = require('./src/utils');
@@ -18,7 +18,10 @@ async function main() {
   await dashboard.exposeBinding('chatCleanupShowChat', async () => chatPage.bringToFront());
   await dashboard.exposeBinding('chatCleanupScan', async () => {
     await chatPage.bringToFront();
-    const conversations = await scanConversations(chatPage, DEFAULT_OPTIONS);
+    const conversations = await scanConversations(chatPage, {
+      ...DEFAULT_OPTIONS,
+      onProgress: async (found) => dashboard.evaluate((value) => window.updateScanProgress?.(value), found).catch(() => {}),
+    });
     latestReport = createReport(classifyConversations(conversations, keepList));
     await saveReport(latestReport);
     await dashboard.bringToFront();
@@ -27,7 +30,7 @@ async function main() {
   await dashboard.exposeBinding('chatCleanupDelete', async (_source, request) => {
     if (deleting) throw new Error('A deletion run is already in progress.');
     if (!latestReport) throw new Error('Run a scan first.');
-    if (!request || !Array.isArray(request.keepIds)) throw new Error('Invalid keep selection.');
+    if (!request || !Array.isArray(request.deleteIds)) throw new Error('Invalid delete selection.');
     const expectedCount = Number(request.candidateCount);
     const expectedPhrase = `DELETE ${expectedCount} CHATS`;
     if (request.confirmation !== expectedPhrase) throw new Error('The confirmation phrase does not match.');
@@ -38,7 +41,7 @@ async function main() {
     try {
       await chatPage.bringToFront();
       const freshScan = await scanConversations(chatPage, DEFAULT_OPTIONS);
-      const candidates = createDeletionPlan(latestReport.conversations, freshScan, request.keepIds, expectedCount);
+      const candidates = createExplicitDeletionPlan(latestReport.conversations, freshScan, request.deleteIds, expectedCount);
 
       for (let index = 0; index < candidates.length; index += 1) {
         if (dashboard.isClosed()) throw new Error('The dashboard was closed.');
@@ -49,12 +52,14 @@ async function main() {
         try {
           await deleteConversation(chatPage, conversation);
           receipt.push({ ...conversation, status: 'DELETED', deletedAt: new Date().toISOString() });
+          await dashboard.evaluate(({ title }) => window.updateDeletionProgress?.({ status: 'DELETED', title, message: `Verified deletion: ${title}` }), { title: conversation.title });
           if ((index + 1) % 5 === 0 && index + 1 < candidates.length) {
             await dashboard.evaluate(() => window.updateDeletionProgress?.({ message: 'Cooling down for 30 seconds to avoid ChatGPT rate limits...' }));
             await delay(30_000);
           }
         } catch (error) {
           receipt.push({ ...conversation, status: error.code === 'CHATGPT_RATE_LIMIT' ? 'RATE_LIMITED' : 'FAILED', error: error.message });
+          await dashboard.evaluate(({ title, message }) => window.updateDeletionProgress?.({ status: 'FAILED', title, message }), { title: conversation.title, message: error.message }).catch(() => {});
           throw error;
         }
       }

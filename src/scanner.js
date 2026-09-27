@@ -104,6 +104,7 @@ async function scanConversations(page, options) {
       }
       previousCount = conversations.size;
       stableAttempts = 0;
+      if (typeof options.onProgress === 'function') await options.onProgress(conversations.size);
     } else {
       stableAttempts += 1;
     }

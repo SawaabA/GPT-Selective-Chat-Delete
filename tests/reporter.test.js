@@ -23,10 +23,12 @@ test('HTML report preserves Unicode and escapes user-controlled titles', () => {
   assert.match(html, /Pokémon &lt;script&gt;alert\(1\)&lt;\/script&gt;/);
   assert.doesNotMatch(html, /<script>alert\(1\)<\/script>/);
   assert.match(html, /data-filter="DELETE_CANDIDATE"/);
-  assert.match(html, /class="keep-checkbox"/);
-  assert.match(html, /Export keep-list\.json/);
+  assert.match(html, /class="delete-checkbox"/);
+  assert.match(html, /Export unselected as keep list/);
   assert.match(html, /conversationIds/);
-  assert.match(html, /Enable verified permanent deletion/);
-  assert.match(html, /Permanently delete unchecked chats/);
+  assert.match(html, /Only chats you explicitly select can be deleted/);
+  assert.match(html, /Permanently delete selected chats/);
+  assert.match(html, /Review permanent deletion/);
+  assert.match(html, /Select visible/);
   assert.match(html, /chatCleanupDelete/);
 });

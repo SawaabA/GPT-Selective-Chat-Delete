@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createDeletionPlan, normalizeId, sameIds } = require('../src/deletion-plan');
+const { createDeletionPlan, createExplicitDeletionPlan, normalizeId, sameIds } = require('../src/deletion-plan');
 
 const chats = [
   { id: 'A', title: 'Keep this' },
@@ -31,4 +31,16 @@ test('rejects a candidate-count mismatch', () => {
 test('normalizes IDs and compares sets without relying on order', () => {
   assert.equal(normalizeId(' A '), 'a');
   assert.equal(sameIds(new Set(['a', 'b']), new Set(['b', 'a'])), true);
+});
+
+test('explicit plan deletes only IDs deliberately selected by the user', () => {
+  const result = createExplicitDeletionPlan(chats, [...chats].reverse(), ['B'], 1);
+  assert.deepEqual(result.map(({ id }) => id), ['B']);
+});
+
+test('explicit plan rejects duplicate, unknown, empty, or changed selections', () => {
+  assert.throws(() => createExplicitDeletionPlan(chats, chats, [], 0), /at least one/i);
+  assert.throws(() => createExplicitDeletionPlan(chats, chats, ['A', 'A'], 2), /duplicate or unknown/i);
+  assert.throws(() => createExplicitDeletionPlan(chats, chats, ['C'], 1), /duplicate or unknown/i);
+  assert.throws(() => createExplicitDeletionPlan(chats, chats, ['A'], 2), /dashboard showed 2/i);
 });
