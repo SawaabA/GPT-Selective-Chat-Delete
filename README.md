@@ -1,12 +1,62 @@
 # GPT Selective Chat Delete
 
-GPT Selective Chat Delete is a local desktop-style tool for reviewing a ChatGPT conversation history and building a reliable list of conversations to keep.
+GPT Selective Chat Delete is now primarily a local Chrome extension for selecting, reviewing, and slowly deleting multiple ChatGPT conversations from a normal signed-in browser session.
 
-It uses Playwright to open ChatGPT in a dedicated Google Chrome profile. You log in yourself, the app scans the conversation sidebar, and a local dashboard lets you search the results and tick the conversations you want to protect.
+The previous Playwright desktop-style tool is preserved as **legacy mode**. None of its files or commands were removed; the explicit `legacy:*` command aliases make it easy to call again.
 
-## Current status
+## Recommended: local Chrome extension
 
-The current release supports:
+The extension does not launch or control Chrome. It runs inside the regular Chrome profile where you already use ChatGPT, which avoids the automation-controlled browser session that can provoke repeated Cloudflare human-verification challenges.
+
+It cannot bypass Cloudflare. You must first be able to open `https://chatgpt.com` normally and complete any human check yourself.
+
+### Install it locally
+
+1. Open Chrome and visit `chrome://extensions`.
+2. Turn on **Developer mode**.
+3. Click **Load unpacked**.
+4. Select this repository's `extension` folder.
+5. Open or refresh `https://chatgpt.com` in your normal signed-in profile.
+6. Click the green **Clean chats** button in the lower-right corner.
+
+### Extension workflow
+
+1. Click **Sync chats**.
+2. Search by conversation title if useful.
+3. Select only the conversations you want to delete.
+4. Click **Review deletion**.
+5. Review the titles and type the exact count-specific confirmation phrase.
+6. Leave the ChatGPT tab open while the extension processes the selection.
+7. Sync again afterward to confirm the live conversation list.
+
+The extension sends requests only to the ChatGPT origin from the signed-in tab. It does not request an OpenAI API key, read message bodies, or send conversation metadata to an outside server.
+
+### Cloudflare and rate limits
+
+- The extension avoids Playwright and uses your normal browser session, so it removes the likely automation signal behind the Cloudflare loop.
+- It does not and cannot bypass a Cloudflare challenge affecting normal Chrome. Resolve that challenge manually before using the extension.
+- Deletes are sequential, with a three-second interval and a 30-second break after every ten successful deletions.
+- If ChatGPT returns HTTP 429, the batch stops immediately, honors `Retry-After` when present, applies a minimum two-minute cooldown, and keeps undeleted chats selected for review and resumption.
+- Rate limiting is controlled by ChatGPT and cannot be guaranteed away. Use smaller batches if the account or network is being limited.
+
+## Legacy Playwright tool
+
+The original application remains available for recovery, comparison, and future debugging:
+
+```sh
+npm run legacy:login
+npm run legacy:app
+npm run legacy:scan
+npm run legacy:delete
+```
+
+The original shorter command names (`npm run login`, `npm run app`, `npm run scan`, and `npm run delete`) remain aliases for backward compatibility.
+
+The legacy tool uses Playwright to open ChatGPT in a dedicated Chrome profile. If that profile enters a repeating Cloudflare verification loop, close it and use the extension in normal Chrome instead.
+
+## Legacy status
+
+The preserved legacy release supports:
 
 - Manual ChatGPT login in a local Chrome profile
 - Scanning lazy-loaded conversation history

@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "GPT Selective Chat Delete",
+  "version": "2.0.0",
+  "description": "Select, review, and slowly delete multiple ChatGPT conversations from your normal browser session.",
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "core.js",
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

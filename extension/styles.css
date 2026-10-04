@@ -1,0 +1,26 @@
+#gptsd-root, #gptsd-root * { box-sizing: border-box; }
+#gptsd-root { color: #ececec; font: 14px/1.4 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+.gptsd-launcher { position: fixed; right: 20px; bottom: 20px; z-index: 2147483646; border: 1px solid #35a46f; border-radius: 999px; padding: 10px 16px; color: white; background: #168655; box-shadow: 0 8px 28px #0006; cursor: pointer; font-weight: 700; }
+.gptsd-launcher:hover { background: #117447; }
+.gptsd-panel { position: fixed; right: 20px; bottom: 72px; z-index: 2147483646; width: min(620px, calc(100vw - 32px)); height: min(720px, calc(100vh - 100px)); border: 1px solid #4a4a4a; border-radius: 16px; overflow: hidden; color: #ececec; background: #202123; box-shadow: 0 18px 60px #000a; }
+.gptsd-panel[hidden] { display: none; }
+.gptsd-header, .gptsd-footer, .gptsd-controls { display: flex; align-items: center; gap: 8px; padding: 12px; }
+.gptsd-header { justify-content: space-between; border-bottom: 1px solid #3a3a3a; }
+.gptsd-header strong, .gptsd-header small { display: block; }
+.gptsd-header small { color: #aaa; margin-top: 2px; }
+.gptsd-close { border: 0; color: #ddd; background: transparent; cursor: pointer; font-size: 24px; }
+.gptsd-controls { flex-wrap: wrap; border-bottom: 1px solid #3a3a3a; }
+.gptsd-controls button, .gptsd-delete { border: 1px solid #555; border-radius: 8px; padding: 8px 10px; color: #eee; background: #303033; cursor: pointer; }
+.gptsd-controls button:disabled, .gptsd-delete:disabled { cursor: not-allowed; opacity: .48; }
+.gptsd-search { flex: 1 1 180px; min-width: 120px; border: 1px solid #555; border-radius: 8px; padding: 8px 10px; color: #eee; background: #161617; }
+.gptsd-status { min-height: 45px; padding: 10px 12px; color: #c7c7c7; border-bottom: 1px solid #3a3a3a; }
+.gptsd-status[data-type="error"] { color: #ffb4b4; background: #5c202033; }
+.gptsd-status[data-type="success"] { color: #a9edc9; background: #17553533; }
+.gptsd-list { height: calc(100% - 202px); overflow: auto; padding: 4px 12px; }
+.gptsd-row { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 9px 4px; border-bottom: 1px solid #343434; cursor: pointer; }
+.gptsd-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gptsd-row a { color: #8bc5ff; text-decoration: none; }
+.gptsd-empty { color: #aaa; text-align: center; padding: 40px 10px; }
+.gptsd-footer { justify-content: space-between; border-top: 1px solid #3a3a3a; }
+.gptsd-delete { border-color: #bb4444; color: white; background: #9d2929; font-weight: 700; }
+@media (max-width: 600px) { .gptsd-panel { inset: 12px; width: auto; height: auto; } .gptsd-launcher { right: 12px; bottom: 12px; } }

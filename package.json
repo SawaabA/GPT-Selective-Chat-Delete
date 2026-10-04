@@ -1,7 +1,7 @@
 {
   "name": "gpt-select-delete-feature",
-  "version": "1.0.0",
-  "description": "Read-only ChatGPT conversation scanner and cleanup preview tool",
+  "version": "2.0.0",
+  "description": "Local Chrome extension for selectively deleting ChatGPT conversations, with a preserved legacy Playwright tool",
   "main": "index.js",
   "scripts": {
     "start": "node app.js",
@@ -9,8 +9,12 @@
     "login": "node src/manual-login.js",
     "scan": "node index.js",
     "delete": "node delete.js",
+    "legacy:app": "node app.js",
+    "legacy:login": "node src/manual-login.js",
+    "legacy:scan": "node index.js",
+    "legacy:delete": "node delete.js",
     "test": "node --test tests/*.test.js",
-    "check": "node --check app.js && node --check index.js && node --check delete.js && node --check src/actions/delete.js && node --check src/browser.js && node --check src/manual-login.js && node --check src/scanner.js && node --check src/classifier.js && node --check src/config.js && node --check src/deletion-plan.js && node --check src/reporter.js && node --check src/selectors.js && node --check src/utils.js"
+    "check": "node --check app.js && node --check index.js && node --check delete.js && node --check src/actions/delete.js && node --check src/browser.js && node --check src/manual-login.js && node --check src/scanner.js && node --check src/classifier.js && node --check src/config.js && node --check src/deletion-plan.js && node --check src/reporter.js && node --check src/selectors.js && node --check src/utils.js && node --check extension/core.js && node --check extension/content.js"
   },
   "repository": {
     "type": "git",
