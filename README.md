@@ -1,6 +1,8 @@
-# GPT Selective Chat Delete
+# Cloudy Chat Cleanup for ChatGPT
 
-GPT Selective Chat Delete is now primarily a local Chrome extension for selecting, reviewing, and slowly deleting multiple ChatGPT conversations from a normal signed-in browser session.
+Cloudy Chat Cleanup is a kawaii local Chrome extension for searching, selecting, archiving, restoring, and safely deleting multiple ChatGPT conversations from a normal signed-in browser session.
+
+Its original cloud-cleaner mascot was generated specifically for this project. The remaining cloud shapes, pastel surfaces, sparkles, controls, and dark theme are implemented locally in CSS with no third-party design assets.
 
 The previous Playwright desktop-style tool is preserved as **legacy mode**. None of its files or commands were removed; the explicit `legacy:*` command aliases make it easy to call again.
 
@@ -17,17 +19,18 @@ It cannot bypass Cloudflare. You must first be able to open `https://chatgpt.com
 3. Click **Load unpacked**.
 4. Select this repository's `extension` folder.
 5. Open or refresh `https://chatgpt.com` in your normal signed-in profile.
-6. Click the green **Clean chats** button in the lower-right corner.
+6. Click **Manage history** in the ChatGPT sidebar. It opens a dedicated selection mode over the left sidebar. If the sidebar is unavailable, the button appears as a small floating launcher.
 
 ### Extension workflow
 
-1. Click **Sync chats**.
-2. Search by conversation title if useful.
-3. Select only the conversations you want to delete.
-4. Click **Review deletion**.
-5. Review the titles and type the exact count-specific confirmation phrase.
-6. Leave the ChatGPT tab open while the extension processes the selection.
-7. Sync again afterward to confirm the live conversation list.
+1. Open **Manage history**. Active chats load automatically.
+2. Search by title, select individual chats, Shift-click a range, or use **Select all** for the filtered list.
+3. Click **Archive** for reversible cleanup, or **Delete** for permanent removal.
+4. Before deletion, review every selected title in the confirmation dialog.
+5. Use the **Archived** tab to search, restore, or permanently delete archived chats.
+6. Leave the ChatGPT tab open while a batch is running.
+
+Large histories are searched and selected as one collection, while the visible checklist renders in 200-chat chunks to keep the ChatGPT page responsive.
 
 The extension sends requests only to the ChatGPT origin from the signed-in tab. It does not request an OpenAI API key, read message bodies, or send conversation metadata to an outside server.
 
@@ -35,7 +38,7 @@ The extension sends requests only to the ChatGPT origin from the signed-in tab. 
 
 - The extension avoids Playwright and uses your normal browser session, so it removes the likely automation signal behind the Cloudflare loop.
 - It does not and cannot bypass a Cloudflare challenge affecting normal Chrome. Resolve that challenge manually before using the extension.
-- Deletes are sequential, with a three-second interval and a 30-second break after every ten successful deletions.
+- Bulk actions are sequential, with a 1.2-second interval and a 12-second break after every 20 successful actions.
 - If ChatGPT returns HTTP 429, the batch stops immediately, honors `Retry-After` when present, applies a minimum two-minute cooldown, and keeps undeleted chats selected for review and resumption.
 - Rate limiting is controlled by ChatGPT and cannot be guaranteed away. Use smaller batches if the account or network is being limited.
 
@@ -135,7 +138,7 @@ In the dashboard:
 7. Click **Export keep-list.json**.
 8. Replace `config/keep-list.json` with the downloaded file if you want those selections to become the default for future scans.
 
-Nothing is preselected for deletion. Select conversations explicitly, use **Review deletion** to inspect the exact list, and type the count-specific confirmation phrase. Unselected conversations are never sent to the deletion workflow.
+Nothing is preselected for deletion. Select conversations explicitly and use the deletion review dialog to inspect the exact list. Unselected conversations are never sent to the deletion workflow.
 
 ## Read-only terminal scan
 

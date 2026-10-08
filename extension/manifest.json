@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "GPT Selective Chat Delete",
-  "version": "2.0.0",
-  "description": "Select, review, and slowly delete multiple ChatGPT conversations from your normal browser session.",
+  "name": "Cloudy Chat Cleanup for ChatGPT",
+  "version": "3.1.0",
+  "description": "A cute, local way to search, select, archive, restore, and safely delete ChatGPT conversations in bulk.",
+  "icons": {
+    "16": "assets/cloud-cleaner-mascot.png",
+    "32": "assets/cloud-cleaner-mascot.png",
+    "48": "assets/cloud-cleaner-mascot.png",
+    "128": "assets/cloud-cleaner-mascot.png"
+  },
   "content_scripts": [
     {
       "matches": [
@@ -16,6 +22,16 @@
         "styles.css"
       ],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/cloud-cleaner-mascot.png"
+      ],
+      "matches": [
+        "https://chatgpt.com/*"
+      ]
     }
   ]
 }

@@ -29,6 +29,7 @@
       title,
       createTime: Number(value?.create_time) || null,
       updateTime: Number(value?.update_time) || null,
+      isArchived: Boolean(value?.is_archived),
       url: `/c/${encodeURIComponent(id)}`,
     };
   }
@@ -37,6 +38,15 @@
     const needle = String(query || '').trim().toLocaleLowerCase();
     if (!needle) return [...conversations];
     return conversations.filter(({ title }) => title.toLocaleLowerCase().includes(needle));
+  }
+
+  function conversationRangeIds(conversations, startId, endId) {
+    const startIndex = conversations.findIndex(({ id }) => id === startId);
+    const endIndex = conversations.findIndex(({ id }) => id === endId);
+    if (startIndex < 0 || endIndex < 0) return [];
+    const first = Math.min(startIndex, endIndex);
+    const last = Math.max(startIndex, endIndex);
+    return conversations.slice(first, last + 1).map(({ id }) => id);
   }
 
   async function runDeleteQueue(ids, options) {
@@ -66,6 +76,7 @@
 
   return {
     RateLimitError,
+    conversationRangeIds,
     filterConversations,
     normalizeConversation,
     parseRetryAfterMs,

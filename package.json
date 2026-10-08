@@ -1,7 +1,7 @@
 {
   "name": "gpt-select-delete-feature",
-  "version": "2.0.0",
-  "description": "Local Chrome extension for selectively deleting ChatGPT conversations, with a preserved legacy Playwright tool",
+  "version": "3.1.0",
+  "description": "Cute local Chrome extension for selecting, archiving, restoring, and deleting ChatGPT conversations in bulk",
   "main": "index.js",
   "scripts": {
     "start": "node app.js",

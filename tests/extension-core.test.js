@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const {
+  conversationRangeIds,
   filterConversations,
   normalizeConversation,
   parseRetryAfterMs,
@@ -15,6 +16,12 @@ test('extension manifest is valid, narrowly scoped, and requests no extra permis
   assert.deepEqual(manifest.content_scripts[0].matches, ['https://chatgpt.com/*']);
   assert.equal(Object.hasOwn(manifest, 'permissions'), false);
   assert.equal(Object.hasOwn(manifest, 'host_permissions'), false);
+  assert.equal(manifest.name, 'Cloudy Chat Cleanup for ChatGPT');
+  assert.equal(fs.existsSync(path.join(__dirname, '..', 'extension', 'assets', 'cloud-cleaner-mascot.png')), true);
+  assert.deepEqual(manifest.web_accessible_resources, [{
+    resources: ['assets/cloud-cleaner-mascot.png'],
+    matches: ['https://chatgpt.com/*'],
+  }]);
 });
 
 test('normalizes and filters conversations without exposing message contents', () => {
@@ -24,10 +31,18 @@ test('normalizes and filters conversations without exposing message contents', (
     title: 'Project notes',
     createTime: null,
     updateTime: 12,
+    isArchived: false,
     url: '/c/abc',
   });
   assert.deepEqual(filterConversations([normalized], 'NOTES').map(({ id }) => id), ['abc']);
   assert.equal(normalizeConversation({ title: 'missing id' }), null);
+});
+
+test('returns an inclusive range in either selection direction', () => {
+  const conversations = ['a', 'b', 'c', 'd'].map((id) => ({ id }));
+  assert.deepEqual(conversationRangeIds(conversations, 'b', 'd'), ['b', 'c', 'd']);
+  assert.deepEqual(conversationRangeIds(conversations, 'd', 'b'), ['b', 'c', 'd']);
+  assert.deepEqual(conversationRangeIds(conversations, 'missing', 'b'), []);
 });
 
 test('parses retry-after seconds and dates with a safe fallback', () => {
