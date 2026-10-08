@@ -40,6 +40,10 @@ test('extension loads, searches, reviews, and deletes through the signed-in tab'
 
   await page.getByRole('button', { name: 'Manage history' }).click();
   await assert.doesNotReject(() => page.getByText(/2 active chats loaded/).waitFor());
+  await page.keyboard.press('Control+Shift+K');
+  assert.equal(await page.locator('#gptsd-panel').isHidden(), true);
+  await page.keyboard.press('Control+Shift+K');
+  assert.equal(await page.locator('#gptsd-panel').isVisible(), true);
 
   await page.getByRole('checkbox', { name: 'Select Delete this chat' }).check();
   await page.getByRole('checkbox', { name: 'Select Keep this chat' }).click({ modifiers: ['Shift'] });

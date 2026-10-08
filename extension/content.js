@@ -21,7 +21,7 @@
   root.id = 'gptsd-root';
   root.dataset.placement = 'floating';
   root.innerHTML = `
-    <button id="gptsd-launcher" class="gptsd-launcher" type="button" aria-label="Manage history" aria-expanded="false" aria-controls="gptsd-panel" data-placement="floating">
+    <button id="gptsd-launcher" class="gptsd-launcher" type="button" aria-label="Manage history" aria-expanded="false" aria-controls="gptsd-panel" data-placement="floating" title="Manage history (Ctrl+Shift+K)">
       <img class="gptsd-launcher-mascot" alt="" aria-hidden="true">
       <span>Cloudy cleanup</span>
       <span class="gptsd-launcher-sparkle" aria-hidden="true">✦</span>
@@ -35,7 +35,19 @@
             <small>Tidy chats, keep happy thoughts ♡</small>
           </div>
         </div>
-        <button class="gptsd-icon-button gptsd-close" type="button" aria-label="Close history manager">✕</button>
+        <div class="gptsd-header-actions">
+          <button class="gptsd-icon-button gptsd-theme-button" type="button" aria-label="Choose color theme" aria-expanded="false" title="Choose color theme">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 0 0 0 18h1.2a1.8 1.8 0 0 0 0-3.6h-.7a1.5 1.5 0 0 1 0-3h2.1A6.4 6.4 0 0 0 21 8c0-3-4-5-9-5Z"/><circle cx="7.5" cy="9" r="1"/><circle cx="10" cy="6.5" r="1"/><circle cx="14" cy="6.5" r="1"/><circle cx="17" cy="9" r="1"/></svg>
+          </button>
+          <button class="gptsd-icon-button gptsd-close" type="button" aria-label="Close history manager">✕</button>
+        </div>
+        <div class="gptsd-theme-menu" role="menu" aria-label="Color themes" hidden>
+          <strong>Pick a cozy theme ✦</strong>
+          <button type="button" role="menuitemradio" data-theme-choice="cotton-candy" aria-checked="true"><span class="gptsd-theme-swatch" aria-hidden="true"></span>Cotton Candy</button>
+          <button type="button" role="menuitemradio" data-theme-choice="matcha-cloud" aria-checked="false"><span class="gptsd-theme-swatch" aria-hidden="true"></span>Matcha Cloud</button>
+          <button type="button" role="menuitemradio" data-theme-choice="peach-sorbet" aria-checked="false"><span class="gptsd-theme-swatch" aria-hidden="true"></span>Peach Sorbet</button>
+          <button type="button" role="menuitemradio" data-theme-choice="moonlight" aria-checked="false"><span class="gptsd-theme-swatch" aria-hidden="true"></span>Moonlight</button>
+        </div>
       </header>
 
       <div class="gptsd-tabs" role="tablist" aria-label="Conversation type">
@@ -90,6 +102,9 @@
     launcher: root.querySelector('.gptsd-launcher'),
     panel: root.querySelector('.gptsd-panel'),
     close: root.querySelector('.gptsd-close'),
+    themeButton: root.querySelector('.gptsd-theme-button'),
+    themeMenu: root.querySelector('.gptsd-theme-menu'),
+    themeChoices: [...root.querySelectorAll('[data-theme-choice]')],
     tabs: [...root.querySelectorAll('.gptsd-tab')],
     selectAll: root.querySelector('.gptsd-select-all input'),
     search: root.querySelector('.gptsd-search'),
@@ -114,6 +129,33 @@
     root.querySelectorAll('.gptsd-mascot, .gptsd-launcher-mascot, .gptsd-dialog-mascot')
       .forEach((image) => { image.src = mascotUrl; });
   }
+
+  const allowedThemes = new Set(['cotton-candy', 'matcha-cloud', 'peach-sorbet', 'moonlight']);
+  const themeStorageKey = 'cloudy-chat-cleanup-theme';
+
+  function applyTheme(theme, persist = false) {
+    const selectedTheme = allowedThemes.has(theme) ? theme : 'cotton-candy';
+    root.dataset.theme = selectedTheme;
+    elements.launcher.dataset.theme = selectedTheme;
+    elements.themeChoices.forEach((choice) => {
+      choice.setAttribute('aria-checked', String(choice.dataset.themeChoice === selectedTheme));
+    });
+    if (persist) {
+      try {
+        localStorage.setItem(themeStorageKey, selectedTheme);
+      } catch {
+        // The theme still applies for this page when browser storage is unavailable.
+      }
+    }
+  }
+
+  let savedTheme = 'cotton-candy';
+  try {
+    savedTheme = localStorage.getItem(themeStorageKey) || savedTheme;
+  } catch {
+    // Use the default theme when browser storage is unavailable.
+  }
+  applyTheme(savedTheme);
 
   function setStatus(message, type = '') {
     elements.status.textContent = message;
@@ -401,6 +443,8 @@
   }
 
   function closePanel() {
+    elements.themeMenu.hidden = true;
+    elements.themeButton.setAttribute('aria-expanded', 'false');
     elements.panel.hidden = true;
     elements.launcher.setAttribute('aria-expanded', 'false');
   }
@@ -435,11 +479,37 @@
   placementObserver.observe(document.documentElement, { childList: true, subtree: true });
   placeInSidebarWhenAvailable();
 
-  elements.launcher.addEventListener('click', () => {
+  function togglePanel() {
     if (elements.panel.hidden) openPanel();
     else closePanel();
-  });
+  }
+
+  let launcherHandledPointer = false;
+  elements.launcher.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    launcherHandledPointer = true;
+    togglePanel();
+    window.setTimeout(() => { launcherHandledPointer = false; }, 0);
+  }, { capture: true });
+  elements.launcher.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!launcherHandledPointer) togglePanel();
+  }, { capture: true });
   elements.close.addEventListener('click', closePanel);
+  elements.themeButton.addEventListener('click', () => {
+    const opening = elements.themeMenu.hidden;
+    elements.themeMenu.hidden = !opening;
+    elements.themeButton.setAttribute('aria-expanded', String(opening));
+  });
+  elements.themeChoices.forEach((choice) => choice.addEventListener('click', () => {
+    applyTheme(choice.dataset.themeChoice, true);
+    elements.themeMenu.hidden = true;
+    elements.themeButton.setAttribute('aria-expanded', 'false');
+    elements.themeButton.focus();
+  }));
   elements.sync.addEventListener('click', syncConversations);
   elements.search.addEventListener('input', () => {
     state.query = elements.search.value;
@@ -498,8 +568,17 @@
     if (event.target === elements.backdrop) closeDeleteReview();
   });
   document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey && event.shiftKey && event.key.toLocaleLowerCase() === 'k') {
+      event.preventDefault();
+      togglePanel();
+      return;
+    }
     if (event.key !== 'Escape') return;
-    if (!elements.backdrop.hidden) closeDeleteReview();
+    if (!elements.themeMenu.hidden) {
+      elements.themeMenu.hidden = true;
+      elements.themeButton.setAttribute('aria-expanded', 'false');
+      elements.themeButton.focus();
+    } else if (!elements.backdrop.hidden) closeDeleteReview();
     else if (!elements.panel.hidden && !state.processing) closePanel();
   });
 
