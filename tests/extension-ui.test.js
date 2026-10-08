@@ -44,6 +44,10 @@ test('extension loads, searches, reviews, and deletes through the signed-in tab'
   assert.equal(await page.locator('#gptsd-panel').isHidden(), true);
   await page.keyboard.press('Control+Shift+K');
   assert.equal(await page.locator('#gptsd-panel').isVisible(), true);
+  assert.equal(await page.locator('.gptsd-list').evaluate((element) => getComputedStyle(element).backgroundImage), 'none');
+  await page.getByRole('button', { name: 'Choose color theme' }).click();
+  await page.getByRole('menuitemradio', { name: 'Matcha Cloud' }).click();
+  assert.equal(await page.locator('#gptsd-root').getAttribute('data-theme'), 'matcha-cloud');
 
   await page.getByRole('checkbox', { name: 'Select Delete this chat' }).check();
   await page.getByRole('checkbox', { name: 'Select Keep this chat' }).click({ modifiers: ['Shift'] });

@@ -4,6 +4,8 @@ Cloudy Chat Cleanup is a kawaii local Chrome extension for searching, selecting,
 
 Its original cloud-cleaner mascot was generated specifically for this project. The remaining cloud shapes, pastel surfaces, sparkles, controls, and dark theme are implemented locally in CSS with no third-party design assets.
 
+Use the palette button in the manager header to choose Cotton Candy, Matcha Cloud, Peach Sorbet, or Moonlight. The choice is saved locally in the ChatGPT page's browser storage and requires no additional extension permission.
+
 The previous Playwright desktop-style tool is preserved as **legacy mode**. None of its files or commands were removed; the explicit `legacy:*` command aliases make it easy to call again.
 
 ## Recommended: local Chrome extension
